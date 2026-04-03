@@ -1,0 +1,46 @@
+name: Web to APK Pro
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Prepare Project Folders
+        run: |
+          mkdir -p www
+          # نقل ملفات الـ html والـ js إلى مجلد www ليفهمها الروبوت
+          cp *.html www/ 2>/dev/null || echo "<html><body>No index.html found</body></html>" > www/index.html
+          cp *.js www/ 2>/dev/null || true
+          cp *.css www/ 2>/dev/null || true
+
+      - name: Install Capacitor and Build
+        run: |
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npx cap init "MyR4App" "com.hussein.r4" --web-dir www
+          npx cap add android
+          npx cap copy
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build Android Project
+        run: |
+          cd android && ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: R4-App-Release
+          path: android/app/build/outputs/apk/debug/app-debug.apk
