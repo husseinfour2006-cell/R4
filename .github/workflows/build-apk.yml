@@ -1,0 +1,34 @@
+name: R4_Final_Clean_Build
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build Process
+        run: |
+          mkdir -p www
+          cp *.html www/index.html 2>/dev/null || echo "<html><body>R4 App</body></html>" > www/index.html
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npx cap init "R4App" "com.hussein.r4app" --web-dir www
+          npx cap add android
+          cd android
+          # تعديل النسخة برمجياً لتجنب الخطأ
+          sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' app/build.gradle
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: R4-APK-File
+          path: android/app/build/outputs/apk/debug/app-debug.apk
