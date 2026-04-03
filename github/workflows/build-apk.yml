@@ -1,0 +1,41 @@
+name: Web to APK Pro
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # تم التحديث لتجنب التحذير
+
+      - name: Initialize Project and Install Capacitor
+        run: |
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          # التأكد من وجود مجلد للويب حتى لو كان فارغاً
+          mkdir -p www
+          cp index.html www/ 2>/dev/null || echo "<html><body>No index.html found</body></html>" > www/index.html
+          npx cap init "MyR4App" "com.hussein.r4" --web-dir www
+          npx cap add android
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build Android Project
+        run: |
+          npx cap copy
+          cd android && ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: R4-App-Release
+          path: android/app/build/outputs/apk/debug/app-debug.apk
