@@ -1,0 +1,27 @@
+name: R4_Final_Build
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - uses: actions/setup-java@v4
+        with: {java-version: '17', distribution: 'temurin'}
+      - name: Build APK
+        run: |
+          mkdir -p www
+          cp *.html www/ 2>/dev/null || echo "<html><body>R4</body></html>" > www/index.html
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npx cap init "R4App" "com.hussein.r4" --web-dir www
+          npx cap add android
+          cd android
+          sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' app/build.gradle
+          chmod +x gradlew
+          ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: My_App_APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
