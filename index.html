@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R4 Enhancer</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #38bdf8;
+            --text: #f1f5f9;
+        }
+
+        body {
+            font-family: sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: var(--card);
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        h1 { color: var(--accent); font-size: 40px; margin-bottom: 5px; }
+        .subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 25px; }
+
+        /* منطقة المعاينة */
+        .preview-area {
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+            border: 2px dashed #334155;
+            min-height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        #mainImg { max-width: 100%; border-radius: 10px; display: none; }
+
+        /* تنسيق الأزرار مع المسافات اللي ردتها */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px; /* مسافة بين الأزرار */
+            border-radius: 12px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            text-decoration: none;
+        }
+
+        .btn-select { background: #334155; color: white; }
+        .btn-go { background: var(--accent); color: #0f172a; }
+        .btn-go:disabled { opacity: 0.3; }
+        .btn-save { background: #10b981; color: white; display: none; }
+
+        #loader { display: none; margin-top: 10px; color: var(--accent); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>R4</h1>
+    <p class="subtitle">احترافية معالجة الصور بالذكاء الاصطناعي</p>
+
+    <div class="preview-area">
+        <span id="label">اختر صورة للبدء</span>
+        <img id="mainImg">
+    </div>
+
+    <input type="file" id="imgInput" accept="image/*" hidden>
+    
+    <button class="btn btn-select" onclick="document.getElementById('imgInput').click()">📁 اختيار صورة</button>
+    <button class="btn btn-go" id="processBtn" disabled onclick="enhanceNow()">✨ تحسين الملامح</button>
+
+    <div id="loader">
+        <p>جاري المعالجة... (<span id="clock">0</span> ثانية)</p>
+    </div>
+
+    <a id="downloadLink" class="btn btn-save">⬇️ تنزيل الصورة النتيجة</a>
+</div>
+
+<script>
+    const imgInput = document.getElementById('imgInput');
+    const processBtn = document.getElementById('processBtn');
+    const mainImg = document.getElementById('mainImg');
+    const label = document.getElementById('label');
+    const loader = document.getElementById('loader');
+    const clock = document.getElementById('clock');
+    const downloadLink = document.getElementById('downloadLink');
+
+    const SERVER_URL = "https://hddhdjdi-ggg0.hf.space/enhance";
+
+    imgInput.onchange = function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                mainImg.src = e.target.result;
+                mainImg.style.display = 'block';
+                label.style.display = 'none';
+                processBtn.disabled = false;
+                downloadLink.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    async function enhanceNow() {
+        const file = imgInput.files[0];
+        if (!file) return;
+
+        processBtn.disabled = true;
+        loader.style.display = 'block';
+        downloadLink.style.display = 'none';
+        
+        let sec = 0;
+        const timerInterval = setInterval(() => {
+            sec++;
+            clock.innerText = sec;
+        }, 1000);
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch(SERVER_URL, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || "السيرفر لا يستجيب");
+            }
+
+            const data = await response.json();
+            const resultBase64 = "data:image/png;base64," + data.image;
+
+            mainImg.src = resultBase64;
+            downloadLink.href = resultBase64;
+            downloadLink.download = "R4_Result.png";
+            downloadLink.style.display = 'block';
+
+        } catch (error) {
+            alert("خطأ: " + error.message);
+        } finally {
+            clearInterval(timerInterval);
+            loader.style.display = 'none';
+            processBtn.disabled = false;
+        }
+    }
+</script>
+</body>
+</html>
